@@ -5,59 +5,6 @@ interface TerrariumProps {}
 
 const Terrarium: React.FC<TerrariumProps> = () => {
   const [plants, setPlants] = React.useState<PlantProps[]>([]);
-
-  const handleDragStart = (
-    event: React.MouseEvent<HTMLImageElement>,
-    plantId: string
-  ) => {
-    event.preventDefault();
-    console.log("Dragging plant with ID:", plantId);
-    const containerRect =
-      event.currentTarget.parentElement?.getBoundingClientRect();
-    if (!containerRect) return;
-
-    const initialX = event.clientX;
-    const initialY = event.clientY;
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - initialX;
-      const deltaY = moveEvent.clientY - initialY;
-      console.log("Delta X:", deltaX, "Delta Y:", deltaY);
-      setPlants((prevPlants) => {
-        // console.log("Previous Plants:", prevPlants);
-        let updatedPlants = prevPlants;
-        updatedPlants =  prevPlants.map((plant) =>
-          plant.id === plantId
-            ? {
-                ...plant,
-                style: {
-                  ...plant.style,
-                  position: "absolute",
-                  top: plant.style?.top
-                    ? `${(plant.style.top as number) - deltaY}px`
-                    : 0,
-                  left: plant.style?.left
-                    ? `${(plant.style.left as number) - deltaX}px`
-                    : 0,
-                },
-              }
-            : plant
-        );
-        console.log("Prev Plants:", prevPlants);
-        console.log("Updated Plants:", updatedPlants);
-        return updatedPlants
-      });
-    };
-
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  };
-
   const plantList = [
     { id: "plant1", src: "../assets/plant1.png", alt: "Plant 1" },
     { id: "plant2", src: "../assets/plant2.png", alt: "Plant 2" },
@@ -78,6 +25,61 @@ const Terrarium: React.FC<TerrariumProps> = () => {
   React.useEffect(() => {
     setPlants(plantList);
   }, []);
+
+  function parseNumber(value: string | Number | undefined): number {
+    if (typeof value === "string") {
+      const parsedValue = parseFloat(value);
+      // Handle NaN or Infinity values (optional)
+      if (isNaN(parsedValue) || !isFinite(parsedValue)) {
+        return 0; // Or any default value you prefer
+      }
+      return parsedValue;
+    }
+    return 0; // Or any default value for undefined values
+  }
+  function handleDragStart(
+    event: React.MouseEvent<HTMLImageElement>,
+    plantId: string
+  ) {
+    event.preventDefault();
+    let initialTop = 0;
+    let initialLeft = 0;
+
+    // Find the plant object based on plantId
+    const plantToUpdate = plants.find((plant) => plant.id === plantId);
+    if (plantToUpdate) {
+      initialTop = parseNumber(plantToUpdate.style?.top) || 0;
+      initialLeft = parseNumber(plantToUpdate.style?.left) || 0;
+    }
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const deltaX = moveEvent.clientX - event.clientX;
+      const deltaY = moveEvent.clientY - event.clientY;
+
+      setPlants((prevPlants) =>
+        prevPlants.map((plant) => {
+          if (plant.id === plantId) {
+            return {
+              ...plant,
+              style: {
+                top: initialTop + deltaY + "px",
+                left: initialLeft + deltaX + "px",
+              },
+            };
+          }
+          return plant;
+        })
+      );
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }
 
   return (
     <div>
