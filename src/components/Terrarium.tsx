@@ -4,7 +4,6 @@ import Plant, { PlantProps } from "./Plant";
 interface TerrariumProps {}
 
 const Terrarium: React.FC<TerrariumProps> = () => {
-  const [plants, setPlants] = React.useState<PlantProps[]>([]);
   const plantList = [
     { id: "plant1", src: "../assets/plant1.png", alt: "Plant 1" },
     { id: "plant2", src: "../assets/plant2.png", alt: "Plant 2" },
@@ -21,64 +20,58 @@ const Terrarium: React.FC<TerrariumProps> = () => {
     { id: "plant13", src: "../assets/plant13.png", alt: "Plant 13" },
     { id: "plant14", src: "../assets/plant14.png", alt: "Plant 14" },
   ];
+  const [plants, setPlants] = React.useState<PlantProps[]>(plantList);
 
-  React.useEffect(() => {
-    setPlants(plantList);
-  }, []);
-
-  function parseNumber(value: string | Number | undefined): number {
-    if (typeof value === "string") {
-      const parsedValue = parseFloat(value);
-      // Handle NaN or Infinity values (optional)
-      if (isNaN(parsedValue) || !isFinite(parsedValue)) {
-        return 0; // Or any default value you prefer
-      }
-      return parsedValue;
-    }
-    return 0; // Or any default value for undefined values
-  }
   function handleDragStart(
     event: React.MouseEvent<HTMLImageElement>,
     plantId: string
   ) {
     event.preventDefault();
-    let initialTop = 0;
-    let initialLeft = 0;
+    let pos1 = 0;
+    let pos2 = 0;
+    let pos3 = 0;
+    let pos4 = 0;
 
-    // Find the plant object based on plantId
-    const plantToUpdate = plants.find((plant) => plant.id === plantId);
-    if (plantToUpdate) {
-      initialTop = parseNumber(plantToUpdate.style?.top) || 0;
-      initialLeft = parseNumber(plantToUpdate.style?.left) || 0;
-    }
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      const deltaX = moveEvent.clientX - event.clientX;
-      const deltaY = moveEvent.clientY - event.clientY;
+    function elementDrag(e: MouseEvent) {
+      e.preventDefault();
+      pos1 = pos3 - e.clientX;
+      pos2 = pos4 - e.clientY;
 
       setPlants((prevPlants) =>
         prevPlants.map((plant) => {
           if (plant.id === plantId) {
+            let box = document.getElementById(`${plantId}`);
+            let rect = box?.getBoundingClientRect();
+            if (!rect) return plant;
+            let { top, left } = rect;
             return {
               ...plant,
               style: {
-                top: initialTop + deltaY + "px",
-                left: initialLeft + deltaX + "px",
+                top: top - pos2 + "px",
+                left: left - pos1 + "px",
               },
             };
           }
           return plant;
         })
       );
-    };
+    }
 
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
-    };
+    function closeDragElement(e: MouseEvent) {
+      e.preventDefault();
+      document.removeEventListener("mousemove", elementDrag);
+      document.removeEventListener("mouseup", closeDragElement);
+    }
 
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    function pointerDrag(e: MouseEvent) {
+      e.preventDefault();
+      pos3 = e.clientX;
+      pos4 = e.clientY;
+      document.addEventListener("mousemove", elementDrag);
+      document.addEventListener("mouseup", closeDragElement);
+    }
+
+    document.addEventListener("mousemove", pointerDrag);
   }
 
   return (
